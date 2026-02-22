@@ -1,0 +1,37 @@
+CREATE DATABASE  main_db;
+USE main_db;
+
+-- 1. The Final Table (Where your data lives)
+CREATE TABLE main_db.events (
+    id Int32,
+    event_type String,
+    value Float64,
+    created_at Int64
+) ENGINE = MergeTree()
+ORDER BY (created_at, id);
+
+-- 2. The Kafka Engine (The 'Pipe' to Redpanda)
+-- Make sure the topic name matches your Debezium config
+CREATE TABLE IF NOT EXISTS main_db.events_queue (
+    after Tuple(id Int32, event_type String, value Float64, created_at Int64)
+) ENGINE = Kafka
+SETTINGS kafka_broker_list = 'redpanda:29092',
+         kafka_topic_list = 'cdc.public.events',
+         kafka_group_name = 'clickhouse_group_1',
+         kafka_format = 'JSONEachRow';
+
+-- 3. The Materialized View (The 'Worker' that moves data)
+CREATE MATERIALIZED VIEW  main_db.events_mv TO main_db.events AS
+SELECT 
+    after.id AS id,
+    after.event_type AS event_type,
+    after.value AS value,
+    after.created_at AS created_at
+FROM main_db.events_queue;
+
+---
+
+
+SELECT event_type, count() AS total_events 
+FROM main_db.events 
+GROUP BY event_type;

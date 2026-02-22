@@ -1,0 +1,17 @@
+{
+  "name": "postgres-to-clickhouse",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "admin",
+    "database.password": "production_password",
+    "database.dbname": "main_db",
+    "topic.prefix": "cdc",
+    "table.include.list": "public.events",
+    "plugin.name": "pgoutput",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.add.fields": "op,table,lsn"
+  }
+}
